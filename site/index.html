@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HA Web Tier</title>
+<style>
+  :root{
+    --bg:#070910; --panel:#0e1219; --line:#1b212c;
+    --fg:#e8eaef; --muted:#6b7488;
+    --az:#f0a93c; --glow:rgba(240,169,60,.22);
+  }
+  /* Accent is set by the AZ that served this response. */
+  body[data-az$="b"]{ --az:#3ecfe8; --glow:rgba(62,207,232,.22); }
+  body[data-az$="c"]{ --az:#8fe03c; --glow:rgba(143,224,60,.22); }
+  body[data-az$="d"]{ --az:#f0603c; --glow:rgba(240,96,60,.22); }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; padding:2.5rem max(1rem,env(safe-area-inset-left,0));
+    display:grid; place-content:center; justify-items:center; gap:2rem;
+    background:var(--bg);
+    background-image:
+      radial-gradient(1100px 600px at 50% -15%, var(--glow), transparent 65%),
+      repeating-linear-gradient(0deg,transparent 0 47px,rgba(255,255,255,.02) 47px 48px),
+      repeating-linear-gradient(90deg,transparent 0 47px,rgba(255,255,255,.02) 47px 48px);
+    color:var(--fg);
+    font:15px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif;
+    transition:background-image .5s ease;
+  }
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+
+  /* ---- status pill ---- */
+  .pill{
+    display:inline-flex; align-items:center; gap:.6rem;
+    font-size:10.5px; font-weight:500; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--az); border:1px solid color-mix(in srgb,var(--az) 28%,transparent);
+    border-radius:999px; padding:.5rem .9rem; background:color-mix(in srgb,var(--az) 7%,transparent);
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--az);animation:pulse 2.2s ease-out infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 var(--az)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+  h1{margin:0;font-size:clamp(1.3rem,4.5vw,1.9rem);font-weight:600;letter-spacing:-.025em;text-align:center;text-wrap:balance}
+
+  /* ---- topology ---- */
+  .topo{width:min(460px,92vw)}
+  .topo svg{display:block;width:100%;height:auto}
+  .edge{stroke:var(--line);stroke-width:1.5;fill:none}
+  .edge.live{stroke:var(--az);stroke-dasharray:4 4;animation:flow 1.1s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-16}}
+  .node{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+  .node.live{stroke:var(--az)}
+  .nlabel{fill:var(--muted);font:500 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}
+  .nlabel.live{fill:var(--az)}
+
+  /* ---- detail card ---- */
+  .card{
+    width:min(460px,92vw); background:var(--panel);
+    border:1px solid var(--line); border-radius:5px; overflow:hidden;
+  }
+  .row{display:flex;justify-content:space-between;align-items:baseline;gap:1.25rem;padding:.8rem 1.1rem;border-top:1px solid var(--line)}
+  .row:first-child{border-top:0}
+  .k{font-size:9.5px;font-weight:500;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .v{font-size:13.5px;color:var(--az);text-align:right;word-break:break-all}
+  .v.plain{color:var(--fg)}
+
+  footer{max-width:46ch;text-align:center;color:var(--muted);font-size:12.5px;display:grid;gap:.45rem}
+  footer p{margin:0}
+  kbd{font-family:ui-monospace,monospace;font-size:.9em;border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:.1em .4em;color:var(--fg)}
+
+  @media (prefers-reduced-motion:reduce){
+    .dot,.edge.live{animation:none}
+    body{transition:none}
+  }
+</style>
+</head>
+<body data-az="__AZ__">
+
+  <span class="pill"><span class="dot"></span>200 OK · healthy</span>
+
+  <h1>Served from behind the load balancer</h1>
+
+  <div class="topo">
+    <svg viewBox="0 0 440 150" role="img" aria-label="Traffic path from the internet through the load balancer to this instance">
+      <!-- edges -->
+      <path class="edge" d="M46 75 H92"/>
+      <path class="edge" id="e-a" d="M168 75 C196 75 196 38 224 38"/>
+      <path class="edge" id="e-b" d="M168 75 C196 75 196 112 224 112"/>
+
+      <!-- internet -->
+      <circle class="node" cx="26" cy="75" r="17"/>
+      <text class="nlabel" x="26" y="112" text-anchor="middle">www</text>
+
+      <!-- ALB -->
+      <rect class="node live" x="92" y="55" width="76" height="40" rx="4"/>
+      <text class="nlabel live" x="130" y="79" text-anchor="middle" style="font-size:11px">ALB</text>
+
+      <!-- AZ a -->
+      <rect class="node" id="n-a" x="224" y="18" width="104" height="40" rx="4"/>
+      <text class="nlabel" id="l-a" x="276" y="42" text-anchor="middle">us-east-1a</text>
+
+      <!-- AZ b -->
+      <rect class="node" id="n-b" x="224" y="92" width="104" height="40" rx="4"/>
+      <text class="nlabel" id="l-b" x="276" y="116" text-anchor="middle">us-east-1b</text>
+
+      <!-- ASG bracket -->
+      <path class="edge" d="M344 22 h10 v106 h-10"/>
+      <text class="nlabel" x="362" y="72" style="font-size:9px">asg</text>
+      <text class="nlabel" x="362" y="84" style="font-size:9px">min 2</text>
+    </svg>
+  </div>
+
+  <div class="card mono">
+    <div class="row"><span class="k">Instance</span><span class="v">__INSTANCE_ID__</span></div>
+    <div class="row"><span class="k">Zone</span><span class="v">__AZ__</span></div>
+    <div class="row"><span class="k">Served</span><span class="v plain" id="t">—</span></div>
+    <div class="row"><span class="k">Hits this tab</span><span class="v plain" id="n">1</span></div>
+  </div>
+
+  <footer>
+    <p>The accent and the lit path follow the zone that answered. Hit <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> until it flips.</p>
+    <p>Terminate either instance — this page stays up.</p>
+  </footer>
+
+<script>
+  (function () {
+    var az = document.body.dataset.az || '';
+    var zone = az.slice(-1) === 'b' ? 'b' : 'a';
+
+    // Light the path, the node and the label for the zone that served this request.
+    var edge = document.getElementById('e-' + zone);
+    var node = document.getElementById('n-' + zone);
+    var label = document.getElementById('l-' + zone);
+    if (edge) edge.classList.add('live');
+    if (node) node.classList.add('live');
+    if (label) label.classList.add('live');
+
+    document.getElementById('t').textContent =
+      new Date().toLocaleTimeString([], { hour12: false });
+
+    try {
+      var n = (Number(sessionStorage.getItem('hits')) || 0) + 1;
+      sessionStorage.setItem('hits', n);
+      document.getElementById('n').textContent = n;
+    } catch (e) { /* private window */ }
+  })();
+</script>
+</body>
+</html>
