@@ -102,7 +102,7 @@ Terminated one instance while refreshing the ALB endpoint in a browser.
 - The ASG launched a replacement in the same AZ within ~30 seconds of detection
 - The replacement booted, registered, and went healthy a few minutes later
 
-![failover](screenshots/target-group-failover.png)
+   ![failover](screenshots/failover.png)
 
 No alert, no intervention, no downtime. That's the whole point of the design.
 
